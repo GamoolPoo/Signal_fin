@@ -1,10 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <!-- PWA 필수 -->
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ATR 가이드">
@@ -12,33 +14,95 @@
 <meta name="theme-color" content="#1B2A4A">
 <meta name="description" content="ATR 기반 매수금액·손절가·눌림목 실시간 계산기">
 
-<!-- PWA 아이콘 (인라인 SVG → base64) -->
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMUIyQTRBIi8+PHRleHQgeD0iOTAiIHk9IjExNSIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNlcmlmIj7wn5SVPC90ZXh0Pjwvc3ZnPg==">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231B2A4A'/><text y='.9em' font-size='80' text-anchor='middle' x='50' font-family='serif'>📐</text></svg>">
+<!-- 아이콘 & 매니페스트 동적 생성 -->
 
-<!-- 매니페스트 인라인 -->
 <script>
-const manifestData = {
-  name: "ATR 트레이딩 가이드",
-  short_name: "ATR 가이드",
-  description: "ATR 기반 매수금액·손절가·눌림목 실시간 계산기",
-  start_url: "./",
-  display: "standalone",
-  background_color: "#F0F4F8",
-  theme_color: "#1B2A4A",
-  orientation: "portrait",
-  icons: [{
-    src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMUIyQTRBIi8+PHRleHQgeD0iOTAiIHk9IjExNSIgZm9udC1zaXplPSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNlcmlmIj7wn5SVPC90ZXh0Pjwvc3ZnPg==",
-    sizes: "180x180", type: "image/svg+xml", purpose: "any maskable"
-  }]
-};
-const blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
-const manifestURL = URL.createObjectURL(blob);
-document.addEventListener('DOMContentLoaded', () => {
-  const link = document.createElement('link');
-  link.rel = 'manifest'; link.href = manifestURL;
-  document.head.appendChild(link);
-});
+(function(){
+  // Canvas로 PNG 아이콘 생성 (iOS apple-touch-icon은 PNG만 지원)
+  function makeIcon(size){
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const r = size * 0.2; // 라운드 코너
+
+    // 배경 (네이비)
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size-r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size-r);
+    ctx.quadraticCurveTo(size, size, size-r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size-r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#1B2A4A';
+    ctx.fill();
+
+    // 상승 차트 라인
+    const pts = [[0.11,0.72],[0.31,0.53],[0.47,0.61],[0.67,0.33],[0.89,0.22]];
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0]*size, pts[0][1]*size);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0]*size, pts[i][1]*size);
+    ctx.strokeStyle = '#38BDF8';
+    ctx.lineWidth = size * 0.045;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // 상단 녹색 점
+    ctx.beginPath();
+    ctx.arc(pts[4][0]*size, pts[4][1]*size, size*0.035, 0, Math.PI*2);
+    ctx.fillStyle = '#10B981';
+    ctx.fill();
+
+    // ATR 텍스트
+    ctx.fillStyle = '#F0F4F8';
+    ctx.font = `900 ${size*0.18}px Arial,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('ATR', size*0.5, size*0.91);
+
+    return c.toDataURL('image/png');
+  }
+
+  // apple-touch-icon 설정
+  const icon180 = makeIcon(180);
+  const touchIcon = document.createElement('link');
+  touchIcon.rel = 'apple-touch-icon';
+  touchIcon.href = icon180;
+  document.head.appendChild(touchIcon);
+
+  // favicon
+  const favicon = document.createElement('link');
+  favicon.rel = 'icon';
+  favicon.type = 'image/png';
+  favicon.href = makeIcon(64);
+  document.head.appendChild(favicon);
+
+  // manifest
+  const manifestData = {
+    name: "ATR 트레이딩 가이드",
+    short_name: "ATR 가이드",
+    description: "ATR 기반 매수금액·손절가·눌림목 실시간 계산기",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#1B2A4A",
+    theme_color: "#1B2A4A",
+    orientation: "portrait",
+    icons: [
+      { src: icon180, sizes: "180x180", type: "image/png", purpose: "any maskable" },
+      { src: makeIcon(512), sizes: "512x512", type: "image/png", purpose: "any maskable" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+  const manifestURL = URL.createObjectURL(blob);
+  const mlink = document.createElement('link');
+  mlink.rel = 'manifest';
+  mlink.href = manifestURL;
+  document.head.appendChild(mlink);
+})();
 </script>
 
 <title>ATR 트레이딩 가이드</title>
@@ -60,8 +124,8 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 /* Nav */
 .nav-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#FFFFFF;border-bottom:2px solid #E2E8F0;box-shadow:0 2px 8px rgba(0,0,0,.08);position:sticky;top:0;z-index:999}
 .nav-inner{display:flex;padding:0 16px;min-width:max-content;max-width:520px;margin:0 auto}
-.nav-btn{padding:14px 12px;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:11px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;transition:all .2s;color:#64748B;font-weight:600;margin-bottom:-2px}
-.nav-btn.active{font-weight:800;border-bottom-color:var(--c);color:#1A202C}
+.nav-btn{padding:14px 12px;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:11px;font-family:‘Noto Sans KR’,sans-serif;white-space:nowrap;transition:all .2s;color:#64748B;font-weight:600;margin-bottom:-2px}
+.nav-btn.active{font-weight:800;border-bottom-color:var(–c);color:#1A202C}
 
 /* Content */
 .content-wrap{max-width:520px;margin:0 auto;padding:20px 16px 120px;padding-bottom:calc(100px + env(safe-area-inset-bottom));overflow-y:visible}
@@ -76,7 +140,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 /* Cards */
 .card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .card-label{font-size:10px;color:#64748B;letter-spacing:1.5px;margin-bottom:10px;text-transform:uppercase;font-weight:800}
-.formula-box{font-family:'DM Mono',monospace;font-size:14px;background:#1E293B;border:none;padding:12px 16px;border-radius:8px;margin:10px 0;color:#7DD3FC;font-weight:500}
+.formula-box{font-family:‘DM Mono’,monospace;font-size:14px;background:#1E293B;border:none;padding:12px 16px;border-radius:8px;margin:10px 0;color:#7DD3FC;font-weight:500}
 .tag{display:inline-block;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700}
 
 /* Table */
@@ -90,14 +154,14 @@ tr:nth-child(even) td{background:#F8FAFC}
 .step-row{display:flex;gap:12px;align-items:stretch;margin-bottom:10px}
 .step-badge{width:64px;flex-shrink:0;background:#059669;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#FFFFFF;text-align:center;line-height:1.3;padding:4px}
 .step-body{flex:1;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.step-formula{font-family:'DM Mono',monospace;font-size:13px;margin-bottom:5px;color:#1B2A4A;font-weight:600}
+.step-formula{font-family:‘DM Mono’,monospace;font-size:13px;margin-bottom:5px;color:#1B2A4A;font-weight:600}
 .step-example{font-size:11px;color:#64748B;font-weight:500}
 
 /* Mult grid */
 .mult-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .mult-card{border-radius:12px;padding:16px;text-align:center;border:1px solid #E2E8F0;background:#FFFFFF;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .mult-card.highlight{border-color:#EF4444;border-width:2px;background:#FFF5F5}
-.mult-num{font-size:24px;font-weight:900;font-family:'DM Mono',monospace}
+.mult-num{font-size:24px;font-weight:900;font-family:‘DM Mono’,monospace}
 .mult-pct{font-size:17px;font-weight:700;color:#1A202C;margin:4px 0}
 .mult-desc{font-size:11px;color:#64748B;font-weight:500}
 
@@ -105,7 +169,7 @@ tr:nth-child(even) td{background:#F8FAFC}
 .target-row{display:flex;align-items:center;gap:12px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .target-label{font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.target-formula{font-size:13px;font-family:'DM Mono',monospace;color:#1B2A4A;margin-top:3px;font-weight:600}
+.target-formula{font-size:13px;font-family:‘DM Mono’,monospace;color:#1B2A4A;margin-top:3px;font-weight:600}
 
 /* Checklist */
 .check-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F1F5F9;cursor:pointer;transition:all .15s}
@@ -125,13 +189,13 @@ tr:nth-child(even) td{background:#F8FAFC}
 /* Two-col grid */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .principle-card{background:#FFFFFF;border-radius:10px;padding:12px 14px;border-left:4px solid #EF4444;border-top:1px solid #E2E8F0;border-right:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.principle-key{font-size:10px;color:#64748B;font-family:'DM Mono',monospace;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.principle-key{font-size:10px;color:#64748B;font-family:‘DM Mono’,monospace;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .principle-val{font-size:13px;font-weight:800;color:#1A202C}
 
 /* Routine circles */
 .routine-grid{display:flex;gap:10px;margin-bottom:20px}
 .routine-card{flex:1;border-radius:14px;padding:18px 10px;text-align:center;border:2px solid #FECACA;background:#FFF5F5}
-.routine-num{font-size:28px;font-weight:900;color:#DC2626;font-family:'DM Mono',monospace;margin-bottom:8px}
+.routine-num{font-size:28px;font-weight:900;color:#DC2626;font-family:‘DM Mono’,monospace;margin-bottom:8px}
 .routine-title{font-size:13px;font-weight:800;color:#1A202C;margin-bottom:5px}
 .routine-sub{font-size:11px;color:#64748B;line-height:1.5;font-weight:500}
 
@@ -149,21 +213,21 @@ tr:nth-child(even) td{background:#F8FAFC}
 .calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .inp-wrap{}
 .inp-label{font-size:11px;color:#374151;margin-bottom:4px;font-weight:700}
-.inp{width:100%;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:8px;padding:8px 12px;color:#1A202C;font-size:14px;font-family:'DM Mono',monospace;font-weight:600}
+.inp{width:100%;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:8px;padding:8px 12px;color:#1A202C;font-size:14px;font-family:‘DM Mono’,monospace;font-weight:600}
 .inp:focus{outline:none;border-color:#3B82F6;background:#FFFFFF}
 .mult-btns{display:flex;gap:6px}
-.mult-btn{flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #CBD5E1;background:#F8FAFC;cursor:pointer;font-size:12px;font-weight:700;color:#374151;transition:all .15s;font-family:'Noto Sans KR',sans-serif}
+.mult-btn{flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid #CBD5E1;background:#F8FAFC;cursor:pointer;font-size:12px;font-weight:700;color:#374151;transition:all .15s;font-family:‘Noto Sans KR’,sans-serif}
 .mult-btn.active{background:#EF4444;border-color:#EF4444;color:white}
 .calc-results{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .res-card{border-radius:10px;padding:12px 8px;text-align:center;border:1.5px solid}
 .res-label{font-size:10px;color:#374151;margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.res-val{font-size:14px;font-weight:800;font-family:'DM Mono',monospace}
+.res-val{font-size:14px;font-weight:800;font-family:‘DM Mono’,monospace}
 .res-sub{font-size:10px;color:#64748B;margin-top:3px;font-weight:500}
 
 /* Bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:2px solid #E2E8F0;padding:10px 20px;padding-bottom:calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.08);z-index:1000}
 .bottom-inner{max-width:520px;margin:0 auto;width:100%;display:flex;justify-content:space-between;align-items:center}
-.nav-prev,.nav-next{padding:9px 18px;border-radius:20px;border:1.5px solid #CBD5E1;background:#F8FAFC;color:#374151;cursor:pointer;font-size:13px;font-family:'Noto Sans KR',sans-serif;transition:all .15s;font-weight:700}
+.nav-prev,.nav-next{padding:9px 18px;border-radius:20px;border:1.5px solid #CBD5E1;background:#F8FAFC;color:#374151;cursor:pointer;font-size:13px;font-family:‘Noto Sans KR’,sans-serif;transition:all .15s;font-weight:700}
 .nav-prev:hover{background:#E2E8F0}
 .nav-next{border-color:#0891B2;background:#E0F2FE;color:#0369A1}
 .nav-next:hover{background:#BAE6FD}
@@ -177,6 +241,7 @@ button:disabled{opacity:.3;cursor:default}
 .pyr-block{border-radius:12px;padding:18px;margin-bottom:12px;border:1.5px solid}
 .pyr-title{font-size:14px;font-weight:800;margin-bottom:12px}
 </style>
+
 </head>
 <body>
 
@@ -205,6 +270,7 @@ button:disabled{opacity:.3;cursor:default}
 <div class="content-wrap">
 
 <!-- ① ATR이란? -->
+
 <div class="section active" id="sec-what">
   <div class="sec-head">
     <div class="sec-icon" style="background:#DBEAFE;border:1px solid #BAE6FD">📐</div>
@@ -258,6 +324,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ② 손절가 -->
+
 <div class="section" id="sec-stoploss">
   <div class="sec-head">
     <div class="sec-icon" style="background:#FFF5F5;border:1px solid #FECACA">🛡️</div>
@@ -292,6 +359,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ③ 매수금액 -->
+
 <div class="section" id="sec-position">
   <div class="sec-head">
     <div class="sec-icon" style="background:#F0FDF4;border:1px solid #A7F3D0">💰</div>
@@ -334,6 +402,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ④ 목표가 -->
+
 <div class="section" id="sec-target">
   <div class="sec-head">
     <div class="sec-icon" style="background:#FFFBEB;border:1px solid #FDE68A">🎯</div>
@@ -372,6 +441,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ⑤ 추가매수 -->
+
 <div class="section" id="sec-additional">
   <div class="sec-head">
     <div class="sec-icon" style="background:#F5F3FF;border:1px solid #DDD6FE">➕</div>
@@ -407,6 +477,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ⑥ 보완지표 -->
+
 <div class="section" id="sec-supplement">
   <div class="sec-head">
     <div class="sec-icon" style="background:#DBEAFE;border:1px solid #BAE6FD">🔧</div>
@@ -433,6 +504,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ⑦ 3초루틴 -->
+
 <div class="section" id="sec-routine">
   <div class="sec-head">
     <div class="sec-icon" style="background:#FFF5F5;border:1px solid #FECACA">⚡</div>
@@ -469,6 +541,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- ⑤ 눌림목 매수 타이밍 -->
+
 <div class="section" id="sec-pullback">
   <div class="sec-head">
     <div class="sec-icon" style="background:#FFF1F2;border:1px solid #FECDD3">📉</div>
@@ -487,6 +560,7 @@ button:disabled{opacity:.3;cursor:default}
   </div>
 
   <!-- 종목 입력 -->
+
   <div class="calc-wrap">
     <div class="calc-label">종목 입력</div>
     <div class="calc-inputs">
@@ -500,19 +574,23 @@ button:disabled{opacity:.3;cursor:default}
       <div class="inp-wrap"><div class="inp-label">총자산 (원)</div><input class="inp" type="number" id="pb_asset" value="100000000" step="1000000" oninput="calcPB()"></div>
     </div>
 
-    <!-- 현재 하락 상태 -->
-    <div id="pb_status" style="margin-bottom:14px"></div>
+```
+<!-- 현재 하락 상태 -->
+<div id="pb_status" style="margin-bottom:14px"></div>
 
-    <!-- 눌림목 구간 -->
-    <div class="calc-label" style="margin-top:4px">눌림목 매수 구간</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="pb_zones"></div>
+<!-- 눌림목 구간 -->
+<div class="calc-label" style="margin-top:4px">눌림목 매수 구간</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="pb_zones"></div>
 
-    <!-- 매수 결과 -->
-    <div class="calc-label">추천 매수 시 포지션</div>
-    <div class="calc-results" id="pb_result"></div>
+<!-- 매수 결과 -->
+<div class="calc-label">추천 매수 시 포지션</div>
+<div class="calc-results" id="pb_result"></div>
+```
+
   </div>
 
   <!-- 판단 기준 -->
+
   <div class="card" style="margin-top:14px">
     <div class="card-label">구간별 판단 기준</div>
     <div class="rule-item"><span class="arrow" style="color:#F59E0B">▸</span><strong>ATR×1.0 하락</strong> — 정상 조정. 관망하며 추가 하락 여부 확인</div>
@@ -531,6 +609,7 @@ button:disabled{opacity:.3;cursor:default}
 </div>
 
 <!-- 💹 수익대응 -->
+
 <div class="section" id="sec-profit">
   <div class="sec-head">
     <div class="sec-icon" style="background:#F5F3FF;border:1px solid #DDD6FE">💹</div>
@@ -541,6 +620,7 @@ button:disabled{opacity:.3;cursor:default}
   </div>
 
   <!-- 입력 -->
+
   <div class="calc-wrap">
     <div class="calc-label">종목 입력</div>
     <div class="calc-inputs">
@@ -566,22 +646,26 @@ button:disabled{opacity:.3;cursor:default}
       </div>
     </div>
 
-    <!-- 매수금액 자동 계산 표시 -->
-    <div id="pr_buytotal" style="margin-bottom:12px"></div>
+```
+<!-- 매수금액 자동 계산 표시 -->
+<div id="pr_buytotal" style="margin-bottom:12px"></div>
 
-    <!-- 현재 수익 상태 -->
-    <div id="pr_status" style="margin-bottom:14px"></div>
+<!-- 현재 수익 상태 -->
+<div id="pr_status" style="margin-bottom:14px"></div>
 
-    <!-- 단계별 대응 -->
-    <div class="calc-label">단계별 대응 계획</div>
-    <div id="pr_stages" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+<!-- 단계별 대응 -->
+<div class="calc-label">단계별 대응 계획</div>
+<div id="pr_stages" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
 
-    <!-- 손절 후 수익 시뮬 -->
-    <div class="calc-label">각 단계 손절 시 전체 수익</div>
-    <div id="pr_sim" style="display:flex;flex-direction:column;gap:6px"></div>
+<!-- 손절 후 수익 시뮬 -->
+<div class="calc-label">각 단계 손절 시 전체 수익</div>
+<div id="pr_sim" style="display:flex;flex-direction:column;gap:6px"></div>
+```
+
   </div>
 
   <!-- 원칙 -->
+
   <div class="card" style="margin-top:14px">
     <div class="card-label">반드시 지킬 3가지</div>
     <div class="rule-item"><span class="arrow" style="color:#7C3AED">▸</span><strong>목표가 도달 당일 매도</strong> — "조금만 더" 금지</div>
@@ -953,5 +1037,6 @@ if('serviceWorker' in navigator){
 }
 
 </script>
+
 </body>
 </html>
